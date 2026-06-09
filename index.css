@@ -1,0 +1,128 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: #F5F5F5;
+  margin: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Mobile phone wrapper */
+#root {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  background: #0D1F0E;
+}
+
+.app-shell {
+  width: 100%;
+  max-width: 430px;
+  min-height: 100vh;
+  background: #F0F4F0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Scrollbar hidden */
+.scroll-hide::-webkit-scrollbar { display: none; }
+.scroll-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Badge styles */
+.badge { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+.badge-green  { background: #E0F4F7; color: #006E85; }
+.badge-orange { background: #FFF3E0; color: #E65100; }
+.badge-red    { background: #FFEBEE; color: #C62828; }
+.badge-gray   { background: #F5F5F5; color: #757575; }
+
+/* Card */
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 10px;
+}
+
+/* Input */
+.field-input {
+  width: 100%;
+  border: 1.5px solid #E0E0E0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 15px;
+  font-family: inherit;
+  color: #1A1A1A;
+  background: #FAFAFA;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.field-input:focus { border-color: #006E85; background: white; }
+
+/* Button */
+.btn-primary {
+  width: 100%;
+  background: #00313C;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.btn-primary:active { opacity: 0.85; }
+
+.btn-ghost {
+  width: 100%;
+  background: transparent;
+  color: #00313C;
+  border: 1.5px solid #E0E0E0;
+  border-radius: 12px;
+  padding: 13px;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* Bottom nav */
+.tab-bar {
+  position: sticky;
+  bottom: 0;
+  background: white;
+  border-top: 1px solid #EEEEEE;
+  display: flex;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.tab-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 4px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  color: #9E9E9E;
+  font-size: 10px;
+  font-weight: 600;
+  gap: 2px;
+}
+.tab-btn.active { color: #00313C; }
+.tab-icon { font-size: 20px; }
+
+@media print {
+  .no-print { display: none !important; }
+  body { background: white; }
+  #root { background: white; }
+  .app-shell { max-width: 100%; box-shadow: none; }
+}
