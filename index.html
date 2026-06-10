@@ -370,6 +370,27 @@ function detectIncompat(products){
 function evalPH(ph){return ph>=5.5&&ph<=6.5?'OK':((ph>=4.5&&ph<5.5)||(ph>6.5&&ph<=7))?'Atenção':'Risco'}
 function evalTemp(t){return t>=10&&t<=25?'OK':(t>=5&&t<=30)?'Atenção':'Risco'}
 function evalCond(c){return !c?'OK':c<=200?'OK':c<=500?'Atenção':'Risco'}
+function explainPH(ph){
+  if(ph>8) return {t:'⚠️ pH muito alcalino',d:'Risco severo de hidrólise alcalina: inseticidas organofosforados e carbamatos podem perder mais de 50% da eficácia em poucas horas. Glifosato também é prejudicado por se ligar a cátions. Correção de pH é fortemente recomendada antes de adicionar produtos.'}
+  if(ph>7) return {t:'⚠️ pH alcalino',d:'Acima de pH 7, a meia-vida de muitos defensivos cai bastante (hidrólise alcalina). Produtos sensíveis: dimetoato, malationa, carbaril. Quanto mais tempo a calda esperar para ser aplicada, maior a perda.'}
+  if(ph>6.5) return {t:'💡 pH levemente alto',d:'Aceitável para a maioria dos produtos, mas se a calda for ficar parada por mais de 2h ou contiver organofosforados, vale corrigir para a faixa 5,5–6,5.'}
+  if(ph>=5.5) return {t:'✅ pH ideal',d:'Faixa 5,5–6,5: a maioria dos defensivos é estável e a absorção foliar é favorecida. Herbicidas ácidos fracos (glifosato, 2,4-D) têm melhor desempenho.'}
+  if(ph>=4.5) return {t:'💡 pH levemente ácido',d:'Alguns produtos toleram bem, mas sulfonilureias podem degradar mais rápido em pH muito baixo (hidrólise ácida). Misturas com cobre podem solubilizar demais e causar fitotoxicidade.'}
+  return {t:'⚠️ pH muito ácido',d:'Abaixo de 4,5: risco de hidrólise ácida para sulfonilureias e degradação acelerada de alguns fungicidas. Fitotoxicidade por excesso de íons metálicos solúveis. Recomenda-se elevar o pH.'}
+}
+function explainTemp(t){
+  if(t>30) return {t:'⚠️ Água muito quente',d:'Acelera reações de degradação química e aumenta a volatilização. Formulações EC podem perder estabilidade da emulsão. Prefira preparar nas horas mais frescas.'}
+  if(t>25) return {t:'💡 Temperatura elevada',d:'Aceitável, mas reações de hidrólise são mais rápidas. Evite deixar a calda pronta parada por longos períodos.'}
+  if(t>=10) return {t:'✅ Temperatura ideal',d:'Entre 10–25°C: dissolução adequada dos produtos sem acelerar degradação.'}
+  if(t>=5) return {t:'💡 Água fria',d:'Pode dificultar a dissolução de pós molháveis (WP) e grânulos (WG). Aumente o tempo de agitação após cada produto.'}
+  return {t:'⚠️ Água muito fria',d:'Abaixo de 5°C: dissolução incompleta de WP/WG, risco de cristalização de alguns SL e separação em formulações EC. Agite por mais tempo e verifique homogeneidade.'}
+}
+function explainCond(c){
+  if(!c) return null
+  if(c>500) return {t:'⚠️ Condutividade alta',d:'Acima de 500 µS/cm indica água dura ou salina. Cátions (Ca²⁺, Mg²⁺, Fe³⁺) se ligam ao glifosato e a outros herbicidas aniônicos, reduzindo a eficácia. Considere usar sulfato de amônio (condicionador) ou trocar a fonte de água.'}
+  if(c>200) return {t:'💡 Condutividade moderada',d:'Entre 200–500 µS/cm: pode haver antagonismo parcial com glifosato e 2,4-D sal amina. Sulfato de amônio a 0,5–1% ajuda a sequestrar os cátions.'}
+  return {t:'✅ Água de boa qualidade',d:'Abaixo de 200 µS/cm: baixa concentração de sais, sem interferência significativa nos defensivos.'}
+}
 function overallEval(...vals){return vals.includes('Risco')?'Risco':vals.includes('Atenção')?'Atenção':'OK'}
 const EC={OK:'#4caf50','Atenção':'#ff9800',Risco:'#f44336'}
 const EB={OK:'#e8f5e9','Atenção':'#fff3e0',Risco:'#ffebee'}
@@ -521,6 +542,18 @@ function LotsScreen({lots,onNav,onNew}){
 const ALL_PRODUCTS = getAllProducts()
 
 const DOSE_UNITS=['L/ha','mL/ha','kg/ha','g/ha','L/100L','mL/100L','g/100L','kg/100L','L/vc','mL/vc']
+// Faixas usuais por unidade — fora disso gera aviso (não bloqueia)
+const DOSE_RANGES={'L/ha':[0.01,15],'mL/ha':[1,5000],'kg/ha':[0.01,10],'g/ha':[0.1,5000],'L/100L':[0.01,5],'mL/100L':[1,2000],'g/100L':[0.5,2000],'kg/100L':[0.01,3],'L/vc':[0.01,50],'mL/vc':[1,10000]}
+function checkDose(val,unit){
+  const v=parseFloat(String(val).replace(',','.'))
+  if(isNaN(v)) return null
+  if(v<=0) return {level:'erro',msg:'Dose deve ser maior que zero.'}
+  const r=DOSE_RANGES[unit]
+  if(!r) return null
+  if(v>r[1]) return {level:'aviso',msg:`Dose acima do usual para ${unit} (típico: até ${r[1]}). Confira o rótulo do produto.`}
+  if(v<r[0]) return {level:'aviso',msg:`Dose abaixo do usual para ${unit}. Confira se a unidade está correta.`}
+  return null
+}
 
 
 // -- Custom products + getAllProducts ------------------------------------
@@ -566,6 +599,8 @@ function ProductPicker({onAdd}){
 
   const confirm=()=>{
     if(!picking) return
+    const chk=doseVal.trim()?checkDose(doseVal,doseUnit):null
+    if(chk&&chk.level==='erro') return
     const dose=doseVal.trim()?(doseVal.trim().replace(',','.')+' '+doseUnit):''
     onAdd({name:picking.name,nameKey:picking.nameKey||nrm(picking.name),type:picking.type||'?',dose})
     setPicking(null)
@@ -663,6 +698,13 @@ function ProductPicker({onAdd}){
               {DOSE_UNITS.map(u=><option key={u} value={u}>{u}</option>)}
             </select>
           </div>
+          {doseVal.trim()&&checkDose(doseVal,doseUnit)&&(
+            <div style={{marginTop:8,padding:'8px 12px',borderRadius:8,fontSize:12,fontWeight:700,
+              background:checkDose(doseVal,doseUnit).level==='erro'?'#ffebee':'#fff8e1',
+              color:checkDose(doseVal,doseUnit).level==='erro'?'#c62828':'#e65100'}}>
+              {checkDose(doseVal,doseUnit).level==='erro'?'🚫':'⚠️'} {checkDose(doseVal,doseUnit).msg}
+            </div>
+          )}
           <button className="btn" style={{marginTop:10}} onClick={confirm}>
             ✅ Adicionar à mistura
           </button>
@@ -864,6 +906,15 @@ function WaterScreen({lot,onBack,onDone}){
             </div>
           ))}
         </div>
+        <div className="card" style={{borderLeft:'4px solid #6A1B9A',background:'#f3e5f5'}}>
+          <div style={{fontWeight:800,fontSize:13,color:'#6A1B9A',marginBottom:8}}>🎓 O que isso significa</div>
+          {[explainPH(phN),explainTemp(tempN),explainCond(condN)].filter(Boolean).map((ex,i)=>(
+            <div key={i} style={{marginBottom:i<2?10:0}}>
+              <div style={{fontWeight:800,fontSize:12,color:'#4A148C',marginBottom:2}}>{ex.t}</div>
+              <div style={{fontSize:12,color:'#6A1B9A',lineHeight:'1.5'}}>{ex.d}</div>
+            </div>
+          ))}
+        </div>
         {phE!=='OK'&&(
           <div className="card" style={{borderLeft:'4px solid #1565C0',background:'#e3f2fd'}}>
             <div style={{fontWeight:800,fontSize:13,color:'#1565C0',marginBottom:6}}>💡 Sugestão de correção</div>
@@ -1055,6 +1106,8 @@ function LotDetailScreen({lot:initLot,op,onBack,onNav,onLotUpdate}){
     }
     const confirmAdd=()=>{
       if(!picking) return
+      const chk=doseVal.trim()?checkDose(doseVal,doseUnit):null
+      if(chk&&chk.level==='erro') return
       const dose=doseVal.trim()?(doseVal.trim().replace(',','.')+' '+doseUnit):''
       setProds(prev=>[...prev,{name:picking.name,nameKey:picking.nameKey,type:picking.type,dose}])
       setPicking(null)
@@ -1181,6 +1234,13 @@ function LotDetailScreen({lot:initLot,op,onBack,onNav,onLotUpdate}){
                     {DOSE_UNITS.map(u=><option key={u} value={u}>{u}</option>)}
                   </select>
                 </div>
+                {doseVal.trim()&&checkDose(doseVal,doseUnit)&&(
+                  <div style={{marginTop:8,padding:'8px 12px',borderRadius:8,fontSize:12,fontWeight:700,
+                    background:checkDose(doseVal,doseUnit).level==='erro'?'#ffebee':'#fff8e1',
+                    color:checkDose(doseVal,doseUnit).level==='erro'?'#c62828':'#e65100'}}>
+                    {checkDose(doseVal,doseUnit).level==='erro'?'🚫':'⚠️'} {checkDose(doseVal,doseUnit).msg}
+                  </div>
+                )}
                 <button className="btn" style={{marginTop:10}} onClick={confirmAdd}>✅ Adicionar</button>
               </div>
             )}
