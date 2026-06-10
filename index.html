@@ -705,7 +705,7 @@ function NewLotScreen({onBack,onSaved,op}){
         volume_liters:parseFloat(vol),area_ha:areaNum||null,
         recipe_text:recipeText,status:'REQUESTED',
         org_id:op?.org_id||'00000000-0000-0000-0000-000000000001',
-        user_id:op?.id||null}
+        user_id:null}
       const lot=await insert('lots',row)
       setSaving(false)
       onSaved(lot,goWater)
