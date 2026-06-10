@@ -320,7 +320,7 @@ const FT={
   BIO:'⚠️ ÚLTIMO — Adicione biológicos por último, longe de luz solar. Não misture com fungicidas.',
   '?':'Consulte a bula para instruções específicas de mistura.'
 }
-const FTm={PH:60,DISP:30,WP:120,SC:60,EC:90,SL:30,FERT:60,OIL:30,BIO:30,'?':60}
+const FTm={PH:120,DISP:60,WP:180,SC:120,EC:180,SL:60,FERT:120,OIL:60,BIO:60,'?':120}
 function nrm(s){return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')}
 function detectType(name){
   const n=nrm(name)
@@ -626,6 +626,22 @@ function ProductPicker({onAdd}){
             </div>
             <button onMouseDown={()=>setPicking(null)} style={{background:'none',border:'none',color:'#999',fontSize:20,cursor:'pointer',padding:0}}>✕</button>
           </div>
+          {(picking.type==='?'||!picking.type)&&(
+            <div style={{marginBottom:12}}>
+              <label className="lbl" style={{marginBottom:6}}>Formulação *</label>
+              <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
+                {Object.entries(FL).filter(([k])=>k!=='?').map(([k,v])=>(
+                  <button key={k} onMouseDown={e=>{e.preventDefault();setPicking(p=>({...p,type:k}))}}
+                    style={{padding:'5px 10px',borderRadius:16,border:'1.5px solid',fontSize:11,fontWeight:700,cursor:'pointer',
+                      background:picking.type===k?FC[k]:'#fff',
+                      color:picking.type===k?'#fff':'#555',
+                      borderColor:picking.type===k?FC[k]:'#ddd'}}>
+                    {FI[k]} {v}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <label className="lbl">Dose (opcional)</label>
           <div style={{display:'flex',gap:8}}>
             <input
@@ -868,7 +884,7 @@ function PrepScreen({lot,onBack,onDone}){
   const steps=useMemo(()=>{
     const s=[{icon:'💧',title:'Encher tanque a 50–75%',detail:'Adicione água limpa e ligue o agitador antes de qualquer produto.',fixed:true,timer:null}]
     products.forEach(p=>s.push({icon:FI[p.type],title:`Adicionar: ${p.name}`,dose:p.dose,sub:FL[p.type],color:FC[p.type],detail:FT[p.type],timer:FTm[p.type],fixed:false}))
-    s.push({icon:'🪣',title:'Completar volume',detail:'Adicione água até o volume total. Mantenha agitação.',fixed:true,timer:null})
+    s.push({icon:'💧',title:'Completar volume',detail:'Adicione água até o volume total. Mantenha agitação.',fixed:true,timer:null})
     s.push({icon:'🔍',title:'Verificar aspecto final',detail:'Observe cor, homogeneidade e ausência de grumos. Pronto para Jar Test!',fixed:true,timer:null})
     return s
   },[products])
@@ -1119,20 +1135,43 @@ function LotDetailScreen({lot:initLot,op,onBack,onNav,onLotUpdate}){
                         <span style={{fontSize:11,fontWeight:800,color:'#fff',background:FC[p.type],padding:'2px 7px',borderRadius:20}}>{p.type}</span>
                       </div>
                     ))}
-                    {filtered.length===0&&<div style={{padding:'10px 12px',fontSize:13,color:'#999'}}>Nenhum produto encontrado</div>}
+                    {filtered.length===0&&search.trim()&&(
+                      <div onClick={()=>selectProduct({name:search.trim(),nameKey:search.trim().toLowerCase(),type:'?'})}
+                        style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',cursor:'pointer',background:'#f8f8f8'}}>
+                        <span style={{fontSize:16}}>➕</span>
+                        <div style={{fontSize:13,color:'#555'}}>Adicionar <b>"{search.trim()}"</b> como produto personalizado</div>
+                      </div>
+                    )}
+                    {filtered.length===0&&!search.trim()&&<div style={{padding:'10px 12px',fontSize:13,color:'#999'}}>Digite para buscar</div>}
                   </div>
                 )}
               </div>
             ):(
               <div style={{background:'#fff',borderRadius:10,padding:'10px 12px',border:'2px solid #006E85'}}>
                 <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
-                  <span style={{fontSize:18}}>{FI[picking.type]}</span>
+                  <span style={{fontSize:18}}>{FI[picking.type]||'🔬'}</span>
                   <div style={{flex:1}}>
                     <div style={{fontWeight:800,fontSize:14}}>{picking.name}</div>
-                    <span style={{fontSize:10,fontWeight:800,color:'#fff',background:FC[picking.type],padding:'1px 6px',borderRadius:20}}>{FL[picking.type]}</span>
+                    <span style={{fontSize:10,fontWeight:800,color:'#fff',background:FC[picking.type]||'#9E9E9E',padding:'1px 6px',borderRadius:20}}>{FL[picking.type]||'Desconhecido'}</span>
                   </div>
                   <button onClick={()=>setPicking(null)} style={{background:'none',border:'none',color:'#bbb',fontSize:18,cursor:'pointer'}}>✕</button>
                 </div>
+                {(picking.type==='?'||!picking.type)&&(
+                  <div style={{marginBottom:10}}>
+                    <div style={{fontSize:11,fontWeight:700,color:'#666',marginBottom:6}}>FORMULAÇÃO *</div>
+                    <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
+                      {Object.entries(FL).filter(([k])=>k!=='?').map(([k,v])=>(
+                        <button key={k} onClick={()=>setPicking(p=>({...p,type:k}))}
+                          style={{padding:'5px 10px',borderRadius:16,border:'1.5px solid',fontSize:11,fontWeight:700,cursor:'pointer',
+                            background:picking.type===k?FC[k]:'#fff',
+                            color:picking.type===k?'#fff':'#555',
+                            borderColor:picking.type===k?FC[k]:'#ddd'}}>
+                          {FI[k]} {v}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div style={{display:'flex',gap:8}}>
                   <input className="field" type="number" placeholder="Dose (ex: 0,4)" value={doseVal}
                     onChange={e=>setDoseVal(e.target.value)} style={{flex:1,marginBottom:0}}
